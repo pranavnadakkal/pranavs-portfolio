@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useSpring } from 'framer-motion';
+import './App.css';
 
 // Security: Constants for event handling and validation
 const VALID_SCROLL_SECTIONS = new Set(['about', 'skills', 'projects', 'contact']);
@@ -24,6 +25,54 @@ const validateCoordinates = (x, y) => {
   return { x: validX, y: validY };
 };
 
+// Hexagon data — stable positions (no Math.random in render)
+const HEXAGONS = [
+  { left: '8%', top: '12%', dur: '9s', delay: '0s' },
+  { left: '80%', top: '8%', dur: '11s', delay: '1.5s' },
+  { left: '55%', top: '35%', dur: '13s', delay: '3s' },
+  { left: '20%', top: '60%', dur: '10s', delay: '0.8s' },
+  { left: '88%', top: '55%', dur: '14s', delay: '2s' },
+  { left: '40%', top: '80%', dur: '8s', delay: '4s' },
+  { left: '5%', top: '85%', dur: '12s', delay: '1s' },
+  { left: '70%', top: '75%', dur: '9s', delay: '2.5s' },
+];
+
+// Deep Space – stable star positions (no Math.random in render)
+const STARS = [
+  { left: '3%', top: '5%', size: 1 }, { left: '11%', top: '19%', size: 2 },
+  { left: '22%', top: '8%', size: 1 }, { left: '34%', top: '3%', size: 1 },
+  { left: '47%', top: '14%', size: 2 }, { left: '58%', top: '7%', size: 1 },
+  { left: '69%', top: '21%', size: 1 }, { left: '79%', top: '11%', size: 2 },
+  { left: '89%', top: '4%', size: 1 }, { left: '95%', top: '17%', size: 1 },
+  { left: '7%', top: '33%', size: 2 }, { left: '16%', top: '44%', size: 1 },
+  { left: '29%', top: '37%', size: 1 }, { left: '41%', top: '51%', size: 2 },
+  { left: '54%', top: '36%', size: 1 }, { left: '64%', top: '47%', size: 1 },
+  { left: '76%', top: '41%', size: 2 }, { left: '86%', top: '54%', size: 1 },
+  { left: '93%', top: '34%', size: 1 }, { left: '2%', top: '63%', size: 2 },
+  { left: '14%', top: '71%', size: 1 }, { left: '26%', top: '66%', size: 1 },
+  { left: '39%', top: '76%', size: 2 }, { left: '51%', top: '69%', size: 1 },
+  { left: '63%', top: '73%', size: 1 }, { left: '74%', top: '62%', size: 2 },
+  { left: '84%', top: '79%', size: 1 }, { left: '92%', top: '67%', size: 1 },
+  { left: '9%', top: '87%', size: 2 }, { left: '21%', top: '91%', size: 1 },
+  { left: '33%', top: '84%', size: 1 }, { left: '46%', top: '89%', size: 2 },
+  { left: '57%', top: '83%', size: 1 }, { left: '71%', top: '88%', size: 1 },
+  { left: '81%', top: '94%', size: 2 }, { left: '91%', top: '84%', size: 1 },
+  { left: '31%', top: '26%', size: 1 }, { left: '53%', top: '43%', size: 2 },
+  { left: '19%', top: '56%', size: 1 }, { left: '68%', top: '31%', size: 1 },
+  { left: '44%', top: '58%', size: 2 }, { left: '5%', top: '47%', size: 1 },
+  { left: '72%', top: '15%', size: 1 }, { left: '85%', top: '25%', size: 1 },
+  { left: '25%', top: '13%', size: 2 }, { left: '60%', top: '96%', size: 1 },
+  { left: '96%', top: '48%', size: 1 }, { left: '43%', top: '29%', size: 2 },
+  { left: '78%', top: '72%', size: 1 }, { left: '37%', top: '59%', size: 1 },
+];
+
+const SKILLS = [
+  { category: 'Languages', items: [{ name: 'Python', pct: 88 }, { name: 'JavaScript', pct: 82 }, { name: 'SQL', pct: 75 }, { name: 'HTML/CSS', pct: 90 }] },
+  { category: 'Security & Core', items: [{ name: 'Network Security', pct: 80 }, { name: 'Scapy', pct: 72 }, { name: 'Process Sync', pct: 78 }, { name: 'OS Concepts', pct: 85 }] },
+  { category: 'Frameworks', items: [{ name: 'React & Vite', pct: 85 }, { name: 'Flask', pct: 78 }, { name: 'Tailwind CSS', pct: 88 }, { name: 'Git & GitHub', pct: 90 }] },
+  { category: 'Methodologies', items: [{ name: 'Agile', pct: 82 }, { name: 'System Optimization', pct: 76 }, { name: 'AI Integration', pct: 74 }, { name: 'Tech Communication', pct: 88 }] },
+];
+
 export default function App() {
   // Mouse Position Logic for the Spotlight Effect and Animated Cursor
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -31,6 +80,10 @@ export default function App() {
   const [isMoving, setIsMoving] = useState(true);
   const cursorRef = useRef({ x: 0, y: 0 });
   const animationFrameRef = useRef(null);
+
+  // Scroll progress
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 200, damping: 30 });
 
   // Security: Memoized event handler to prevent unnecessary re-renders
   const updateMousePosition = useCallback((e) => {
@@ -79,220 +132,120 @@ export default function App() {
   }, [updateMousePosition, handleMouseEnter, handleMouseLeave, animate]);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-emerald-400 selection:text-slate-900 relative overflow-hidden cursor-none">
-      
-      {/* Animated Background Grid */}
+    <div className="min-h-screen bg-[#030712] text-slate-100 font-sans selection:bg-violet-400 selection:text-slate-900 relative overflow-hidden cursor-none">
+
+      {/* Scroll Progress Bar */}
       <motion.div
+        className="scroll-progress"
+        style={{ scaleX }}
+      />
+
+      {/* Subtle Space Grid */}
+      <div
         className="pointer-events-none fixed inset-0 z-0"
         style={{
-          backgroundImage: `
-            linear-gradient(0deg, transparent 24%, rgba(52, 211, 153, 0.05) 25%, rgba(52, 211, 153, 0.05) 26%, transparent 27%, transparent 74%, rgba(52, 211, 153, 0.05) 75%, rgba(52, 211, 153, 0.05) 76%, transparent 77%, transparent),
-            linear-gradient(90deg, transparent 24%, rgba(52, 211, 153, 0.05) 25%, rgba(52, 211, 153, 0.05) 26%, transparent 27%, transparent 74%, rgba(52, 211, 153, 0.05) 75%, rgba(52, 211, 153, 0.05) 76%, transparent 77%, transparent)
-          `,
-          backgroundSize: '50px 50px',
-        }}
-        animate={{
-          backgroundPosition: ['0px 0px', '50px 50px'],
-        }}
-        transition={{
-          duration: 20,
-          repeat: Infinity,
-          ease: 'linear',
+          backgroundImage:
+            'linear-gradient(rgba(99,102,241,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.04) 1px, transparent 1px)',
+          backgroundSize: '60px 60px',
         }}
       />
 
-      {/* Cyber Security - Scanning Lines */}
-      <motion.div
-        className="pointer-events-none fixed inset-0 z-5"
-        style={{
-          backgroundImage: `linear-gradient(0deg, rgba(52, 211, 153, 0.03) 1px, transparent 1px)`,
-          backgroundSize: '100% 4px',
-        }}
-        animate={{
-          backgroundPosition: ['0px 0px', '0px 100px'],
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: 'linear',
-        }}
-      />
-
-      {/* Animated Gradient Orbs - Cybersecurity Theme */}
-      <motion.div
-        className="pointer-events-none fixed inset-0 z-10"
-      >
-        {/* Orb 1 - Top Left - Lock Shield */}
+      {/* Cosmic Nebula Orbs */}
+      <motion.div className="pointer-events-none fixed inset-0 z-10">
+        {/* Indigo – Top Left */}
         <motion.div
-          className="absolute top-0 left-0 w-96 h-96 rounded-full opacity-25"
-          style={{
-            background: 'radial-gradient(circle, rgba(52, 211, 153, 0.4) 0%, transparent 70%)',
-            filter: 'blur(40px)',
-          }}
-          animate={{
-            x: [0, 120, 0],
-            y: [0, 80, 0],
-          }}
-          transition={{
-            duration: 15,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
+          className="absolute top-0 left-0 rounded-full"
+          style={{ width: 640, height: 640, background: 'radial-gradient(circle, rgba(99,102,241,0.38) 0%, rgba(67,56,202,0.16) 40%, transparent 70%)', filter: 'blur(60px)' }}
+          animate={{ x: [0, 80, 0], y: [0, 60, 0] }}
+          transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
         />
-
-        {/* Orb 2 - Bottom Right - Network */}
+        {/* Violet – Bottom Right */}
         <motion.div
-          className="absolute bottom-0 right-0 w-96 h-96 rounded-full opacity-20"
-          style={{
-            background: 'radial-gradient(circle, rgba(34, 197, 94, 0.35) 0%, transparent 70%)',
-            filter: 'blur(40px)',
-          }}
-          animate={{
-            x: [0, -100, 0],
-            y: [0, -90, 0],
-          }}
-          transition={{
-            duration: 18,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
+          className="absolute bottom-0 right-0 rounded-full"
+          style={{ width: 560, height: 560, background: 'radial-gradient(circle, rgba(139,92,246,0.32) 0%, rgba(109,40,217,0.13) 40%, transparent 70%)', filter: 'blur(70px)' }}
+          animate={{ x: [0, -70, 0], y: [0, -80, 0] }}
+          transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
         />
-
-        {/* Orb 3 - Center - Threat Detection */}
+        {/* Cyan – Centre */}
         <motion.div
-          className="absolute top-1/2 left-1/2 w-80 h-80 rounded-full opacity-12 transform -translate-x-1/2 -translate-y-1/2"
-          style={{
-            background: 'radial-gradient(circle, rgba(239, 68, 68, 0.25) 0%, transparent 70%)',
-            filter: 'blur(50px)',
-          }}
-          animate={{
-            scale: [1, 1.3, 1],
-          }}
-          transition={{
-            duration: 12,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
+          className="absolute rounded-full"
+          style={{ top: '30%', left: '20%', width: 480, height: 480, background: 'radial-gradient(circle, rgba(34,211,238,0.18) 0%, rgba(6,182,212,0.07) 40%, transparent 70%)', filter: 'blur(80px)' }}
+          animate={{ scale: [1, 1.2, 1], x: [0, 50, 0] }}
+          transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        {/* Purple – Top Right */}
+        <motion.div
+          className="absolute top-0 right-0 rounded-full"
+          style={{ width: 400, height: 400, background: 'radial-gradient(circle, rgba(168,85,247,0.26) 0%, rgba(126,34,206,0.11) 40%, transparent 70%)', filter: 'blur(50px)' }}
+          animate={{ x: [0, -40, 0], y: [0, 50, 0] }}
+          transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        {/* Fuchsia – Bottom Left */}
+        <motion.div
+          className="absolute rounded-full"
+          style={{ bottom: '25%', left: 0, width: 320, height: 320, background: 'radial-gradient(circle, rgba(217,70,239,0.2) 0%, transparent 70%)', filter: 'blur(60px)' }}
+          animate={{ scale: [1, 1.3, 1], y: [0, -40, 0] }}
+          transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
         />
       </motion.div>
 
-      {/* Cyber Matrix Rain Effect */}
-      <motion.div className="pointer-events-none fixed inset-0 z-5">
+      {/* Starfield */}
+      <div className="pointer-events-none fixed inset-0 z-5">
+        {STARS.map((star, i) => (
+          <motion.div
+            key={`star-${i}`}
+            className="absolute rounded-full bg-white"
+            style={{ left: star.left, top: star.top, width: star.size, height: star.size }}
+            animate={{ opacity: [0.2, 0.95, 0.2], scale: [1, 1.5, 1] }}
+            transition={{ duration: 2 + (i % 5) * 0.9, repeat: Infinity, ease: 'easeInOut', delay: (i % 7) * 0.45 }}
+          />
+        ))}
+      </div>
+
+      {/* Shooting Stars */}
+      {[...Array(3)].map((_, i) => (
+        <motion.div
+          key={`shoot-${i}`}
+          className="pointer-events-none fixed z-6"
+          style={{
+            top: `${10 + i * 28}%`,
+            left: '-10%',
+            width: 150,
+            height: 1,
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.85), transparent)',
+            filter: 'blur(0.5px)',
+          }}
+          animate={{ x: ['0vw', '130vw'], opacity: [0, 0.9, 0] }}
+          transition={{ duration: 1.2, repeat: Infinity, delay: i * 4 + 2, repeatDelay: 10 + i * 5, ease: 'easeIn' }}
+        />
+      ))}
+
+      {/* Cosmic Dust Particles */}
+      <motion.div className="pointer-events-none fixed inset-0 z-6">
         {[...Array(8)].map((_, i) => (
           <motion.div
-            key={`matrix-${i}`}
-            className="absolute text-emerald-400 font-mono text-xs opacity-10"
+            key={`dust-${i}`}
+            className="absolute rounded-full"
             style={{
-              left: `${i * 12.5}%`,
-              top: -20,
+              left: `${8 + i * 11}%`,
+              top: `${15 + (i % 4) * 20}%`,
+              width: i % 3 === 0 ? 3 : 2,
+              height: i % 3 === 0 ? 3 : 2,
+              background:
+                i % 3 === 0 ? 'rgba(196,181,253,0.9)' :
+                  i % 3 === 1 ? 'rgba(125,211,252,0.9)' :
+                    'rgba(249,168,212,0.7)',
+              boxShadow:
+                i % 3 === 0 ? '0 0 8px rgba(196,181,253,0.7)' :
+                  i % 3 === 1 ? '0 0 8px rgba(125,211,252,0.7)' :
+                    '0 0 6px rgba(249,168,212,0.6)',
             }}
-            animate={{
-              y: [0, window.innerHeight + 40],
-            }}
-            transition={{
-              duration: 8 + i * 0.5,
-              repeat: Infinity,
-              ease: 'linear',
-            }}
-          >
-            {Array.from({ length: 15 }, () => 
-              Math.random() > 0.5 ? '1' : '0'
-            ).join('\n')}
-          </motion.div>
-        ))}
-      </motion.div>
-
-      {/* Cyber Network Nodes - Animated Dots */}
-      <motion.div className="pointer-events-none fixed inset-0 z-8">
-        {[...Array(12)].map((_, i) => (
-          <motion.div
-            key={`node-${i}`}
-            className="absolute w-2 h-2 rounded-full border border-emerald-400"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              backgroundColor: i % 3 === 0 ? 'rgba(52, 211, 153, 0.6)' : 'transparent',
-            }}
-            animate={{
-              opacity: [0.3, 0.8, 0.3],
-              scale: [1, 1.5, 1],
-              boxShadow: [
-                '0 0 0px rgba(52, 211, 153, 0.5)',
-                '0 0 20px rgba(52, 211, 153, 0.8)',
-                '0 0 0px rgba(52, 211, 153, 0.5)',
-              ],
-            }}
-            transition={{
-              duration: 3 + i * 0.3,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
+            animate={{ y: [0, -140, 0], opacity: [0.5, 1, 0.5], x: [0, i % 2 === 0 ? 25 : -25, 0] }}
+            transition={{ duration: 10 + i * 1.5, repeat: Infinity, ease: 'easeInOut', delay: i * 0.8 }}
           />
         ))}
       </motion.div>
 
-      {/* Security Scan Lines - Pulse Effect */}
-      <motion.div
-        className="pointer-events-none fixed inset-0 z-9"
-        style={{
-          borderLeft: '2px solid rgba(52, 211, 153, 0)',
-          borderRight: '2px solid rgba(52, 211, 153, 0)',
-        }}
-      >
-        <motion.div
-          className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-b from-emerald-400 to-transparent opacity-0"
-          animate={{
-            top: ['0%', '100%'],
-            opacity: [0.5, 0],
-          }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: 'easeInOut',
-            delay: 0,
-          }}
-        />
-        <motion.div
-          className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-b from-emerald-400 to-transparent opacity-0"
-          animate={{
-            top: ['0%', '100%'],
-            opacity: [0.5, 0],
-          }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: 'easeInOut',
-            delay: 2,
-          }}
-        />
-      </motion.div>
-
-      {/* Floating Security Particles */}
-      <motion.div className="pointer-events-none fixed inset-0 z-6">
-        {[...Array(6)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 bg-emerald-400 rounded-full"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              opacity: 0.4,
-              boxShadow: '0 0 10px rgba(52, 211, 153, 0.6)',
-            }}
-            animate={{
-              y: [0, -150, 0],
-              opacity: [0.4, 0.9, 0.4],
-              x: [0, Math.random() * 50 - 25, 0],
-            }}
-            transition={{
-              duration: 10 + i * 1.5,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-          />
-        ))}
-      </motion.div>
-      
       {/* Animated Custom Cursor */}
       <motion.div
         animate={{
@@ -308,13 +261,13 @@ export default function App() {
         className="pointer-events-none fixed w-5 h-5 z-50"
         style={{
           borderRadius: '50%',
-          background: 'radial-gradient(circle, #34d399 0%, rgba(52, 211, 153, 0.5) 100%)',
-          boxShadow: '0 0 25px rgba(52, 211, 153, 0.8), inset 0 0 15px rgba(52, 211, 153, 0.6)',
+          background: 'radial-gradient(circle, #a78bfa 0%, rgba(139,92,246,0.5) 100%)',
+          boxShadow: '0 0 25px rgba(139,92,246,0.8), inset 0 0 15px rgba(139,92,246,0.6)',
           left: 0,
           top: 0,
         }}
       />
-      
+
       {/* Cursor Trail */}
       <motion.div
         animate={{
@@ -329,25 +282,25 @@ export default function App() {
         }}
         className="pointer-events-none fixed w-8 h-8 z-40"
         style={{
-          border: '2px solid rgba(52, 211, 153, 0.5)',
+          border: '2px solid rgba(139,92,246,0.5)',
           borderRadius: '50%',
           left: 0,
           top: 0,
         }}
       />
-      
+
       {/* Interactive Spotlight Background */}
-      <div 
+      <div
         className="pointer-events-none fixed inset-0 z-30 transition-opacity duration-300"
         style={{
-          background: `radial-gradient(600px at ${mousePosition.x}px ${mousePosition.y}px, rgba(52, 211, 153, 0.10), transparent 80%)`
+          background: `radial-gradient(600px at ${mousePosition.x}px ${mousePosition.y}px, rgba(139, 92, 246, 0.09), transparent 80%)`
         }}
       />
 
       {/* Navigation */}
       <nav className="p-6 flex justify-between items-center max-w-5xl mx-auto relative z-40 backdrop-blur-sm">
         {/* Professional PN Logo */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
@@ -363,12 +316,12 @@ export default function App() {
             <svg width="48" height="48" viewBox="0 0 48 48" className="absolute text-emerald-400/20">
               <circle cx="24" cy="24" r="22" fill="none" stroke="currentColor" strokeWidth="2" />
             </svg>
-            
+
             {/* Animated Border */}
-            <motion.svg 
-              width="48" 
-              height="48" 
-              viewBox="0 0 48 48" 
+            <motion.svg
+              width="48"
+              height="48"
+              viewBox="0 0 48 48"
               className="absolute text-emerald-400"
               animate={{ rotate: 360 }}
               transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
@@ -383,7 +336,7 @@ export default function App() {
               </span>
             </div>
           </motion.div>
-          
+
           {/* Tooltip */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -396,20 +349,20 @@ export default function App() {
         </motion.div>
 
         {/* Navigation Links */}
-        <motion.ul 
+        <motion.ul
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
           className="flex space-x-8 text-sm font-mono text-slate-300 hidden md:flex"
         >
           {['About', 'Skills', 'Projects', 'Contact'].map((item, index) => (
-            <motion.li 
+            <motion.li
               key={item}
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
             >
-              <motion.a 
+              <motion.a
                 href={`#${item.toLowerCase()}`}
                 onClick={(e) => {
                   e.preventDefault();
@@ -422,7 +375,7 @@ export default function App() {
                 transition={{ duration: 0.2 }}
               >
                 <span>{item}</span>
-                
+
                 {/* Animated underline */}
                 <motion.div
                   className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-emerald-400 to-emerald-300"
@@ -437,10 +390,10 @@ export default function App() {
       </nav>
 
       <main className="max-w-5xl mx-auto px-6 relative z-40">
-        
+
         {/* Hero Section */}
         <section className="py-32 flex flex-col justify-center items-start min-h-[80vh]">
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -448,8 +401,9 @@ export default function App() {
           >
             Hi, my name is
           </motion.p>
-          <motion.h1 
-            className="text-5xl md:text-7xl font-extrabold text-slate-100 tracking-tight mb-4 flex flex-wrap"
+          <motion.h1
+            className="text-5xl md:text-7xl font-extrabold text-slate-100 tracking-tight mb-4 flex flex-wrap glitch"
+            data-text="Pranav Nadakkal."
             initial="hidden"
             animate="visible"
             variants={{
@@ -464,30 +418,31 @@ export default function App() {
               <motion.span
                 key={index}
                 variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  visible: { opacity: 1, y: 0 }
+                  hidden: { opacity: 0, y: 30, filter: 'blur(8px)' },
+                  visible: { opacity: 1, y: 0, filter: 'blur(0px)' }
                 }}
-                whileHover={{ 
-                  color: '#34d399', // Tailwind's emerald-400
-                  y: -8,
-                  scale: 1.1,
-                  transition: { type: "spring", stiffness: 400, damping: 10 } 
+                whileHover={{
+                  color: '#34d399',
+                  y: -10,
+                  scale: 1.15,
+                  textShadow: '0 0 20px rgba(52,211,153,0.8)',
+                  transition: { type: 'spring', stiffness: 500, damping: 10 }
                 }}
-                className={`cursor-default inline-block ${char === " " ? "w-4 md:w-6" : ""}`}
+                className={`cursor-default inline-block ${char === ' ' ? 'w-4 md:w-6' : ''}`}
               >
                 {char}
               </motion.span>
             ))}
           </motion.h1>
-          <motion.h2 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="text-4xl md:text-6xl font-bold text-slate-400 mb-6"
+          <motion.h2
+            initial={{ opacity: 0, y: 30, filter: 'blur(10px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            transition={{ delay: 0.55, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+            className="text-4xl md:text-6xl font-bold text-slate-400 mb-6 typing-cursor"
           >
             I build and secure digital systems.
           </motion.h2>
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
@@ -495,25 +450,25 @@ export default function App() {
           >
             I am a software developer with a strong focus on cybersecurity and creating robust, intelligent applications.
           </motion.p>
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7 }}
             className="flex flex-wrap gap-4"
           >
-            <motion.a 
+            <motion.a
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              href="#projects" 
+              href="#projects"
               className="bg-transparent border border-emerald-400 text-emerald-400 hover:bg-emerald-400/10 px-8 py-4 rounded font-mono transition-all"
             >
               Check out my work
             </motion.a>
-            <motion.a 
+            <motion.a
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              href="/resume.pdf" 
-              download="Pranav_Nadakkal_Resume.pdf" 
+              href="/resume.pdf"
+              download="Pranav_Nadakkal_Resume.pdf"
               className="bg-emerald-400/10 border border-emerald-400 text-emerald-400 hover:bg-emerald-400/20 px-8 py-4 rounded font-mono transition-all flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
@@ -524,19 +479,19 @@ export default function App() {
 
         {/* About Section */}
         <section id="about" className="py-24 border-t border-slate-800">
-          <motion.h3 
+          <motion.h3
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
-            viewport={{ once: true, margin: "-100px" }}
+            viewport={{ once: true, margin: '-100px' }}
             className="text-3xl font-bold mb-12 flex items-center"
           >
-            <span className="text-emerald-400 font-mono text-xl mr-3">01.</span> About Me
+            <span className="text-emerald-400 font-mono text-xl mr-3 section-num">01.</span> About Me
           </motion.h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
             {/* Text Content */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
@@ -553,7 +508,7 @@ export default function App() {
                 <span className="absolute left-0 text-emerald-400">▹</span>
                 Hello! I'm Pranav, and I enjoy creating things that live on the internet, whether that means building software from scratch or ensuring networks remain secure against modern threats.
               </motion.p>
-              
+
               <motion.p
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
@@ -564,7 +519,7 @@ export default function App() {
                 <span className="absolute left-0 text-emerald-400">▹</span>
                 I am currently pursuing my Master of Computer Applications (MCA), with an expected graduation in 2027. My academic journey and personal projects have given me a solid foundation in software engineering principles, operating systems, and network security.
               </motion.p>
-              
+
               <motion.p
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
@@ -583,15 +538,15 @@ export default function App() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
               viewport={{ once: true, margin: "-100px" }}
-              whileHover={{ 
+              whileHover={{
                 boxShadow: "0 0 30px rgba(52, 211, 153, 0.2)",
                 y: -5
               }}
               className="bg-slate-800/40 border border-slate-700/60 rounded-lg p-6 backdrop-blur-sm hover:border-emerald-400/40 transition-all duration-300"
             >
               <h4 className="text-emerald-400 font-bold mb-6 text-lg font-mono">Quick Facts</h4>
-              
-              <motion.div 
+
+              <motion.div
                 className="space-y-5"
                 variants={{
                   hidden: { opacity: 1 },
@@ -666,191 +621,78 @@ export default function App() {
 
         {/* Skills Section */}
         <section id="skills" className="py-24 border-t border-slate-800">
-          <motion.h3 
+          <motion.h3
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
-            viewport={{ once: true, margin: "-100px" }}
+            viewport={{ once: true, margin: '-100px' }}
             className="text-3xl font-bold mb-8 flex items-center text-slate-100"
           >
-            <span className="text-emerald-400 font-mono text-xl mr-3">02.</span> Skills & Technologies
+            <span className="text-emerald-400 font-mono text-xl mr-3 section-num">02.</span> Skills &amp; Technologies
           </motion.h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-slate-400 font-mono text-sm">
-            {/* Languages */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              whileHover={{ 
-                y: -5,
-                boxShadow: "0 0 20px rgba(52, 211, 153, 0.2)",
-                transition: { duration: 0.3 }
-              }}
-              className="p-4 rounded-lg bg-slate-800/30 border border-slate-700/50 hover:border-emerald-400/50 transition-colors cursor-default"
-            >
-              <h4 className="text-emerald-400 mb-4 text-base font-sans font-bold">Languages</h4>
-              <motion.ul 
-                className="space-y-2"
-                variants={{
-                  hidden: { opacity: 1 },
-                  visible: {
-                    opacity: 1,
-                    transition: { staggerChildren: 0.1 }
-                  }
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-slate-400 font-mono text-sm">
+            {SKILLS.map((group, gi) => (
+              <motion.div
+                key={group.category}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: gi * 0.1 }}
+                viewport={{ once: true, margin: '-100px' }}
+                whileHover={{
+                  y: -6,
+                  boxShadow: '0 0 30px rgba(52, 211, 153, 0.25)',
+                  transition: { duration: 0.3 }
                 }}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-100px" }}
+                className="p-6 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-emerald-400/60 transition-colors cursor-default neon-pulse"
               >
-                {['▹ Python', '▹ JavaScript (ES6+)', '▹ SQL', '▹ HTML/CSS'].map((item, idx) => (
-                  <motion.li
-                    key={idx}
-                    variants={{
-                      hidden: { opacity: 0, x: -10 },
-                      visible: { opacity: 1, x: 0 }
-                    }}
-                    whileHover={{ x: 5, color: '#34d399' }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {item}
-                  </motion.li>
-                ))}
-              </motion.ul>
-            </motion.div>
-
-            {/* Security & Core */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              viewport={{ once: true, margin: "-100px" }}
-              whileHover={{ 
-                y: -5,
-                boxShadow: "0 0 20px rgba(52, 211, 153, 0.2)",
-                transition: { duration: 0.3 }
-              }}
-              className="p-4 rounded-lg bg-slate-800/30 border border-slate-700/50 hover:border-emerald-400/50 transition-colors cursor-default"
-            >
-              <h4 className="text-emerald-400 mb-4 text-base font-sans font-bold">Security & Core</h4>
-              <motion.ul 
-                className="space-y-2"
-                variants={{
-                  hidden: { opacity: 1 },
-                  visible: {
-                    opacity: 1,
-                    transition: { staggerChildren: 0.1 }
-                  }
-                }}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-100px" }}
-              >
-                {['▹ Network Security', '▹ Scapy', '▹ Process Synchronization', '▹ Operating Systems'].map((item, idx) => (
-                  <motion.li
-                    key={idx}
-                    variants={{
-                      hidden: { opacity: 0, x: -10 },
-                      visible: { opacity: 1, x: 0 }
-                    }}
-                    whileHover={{ x: 5, color: '#34d399' }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {item}
-                  </motion.li>
-                ))}
-              </motion.ul>
-            </motion.div>
-
-            {/* Frameworks & Tools */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              viewport={{ once: true, margin: "-100px" }}
-              whileHover={{ 
-                y: -5,
-                boxShadow: "0 0 20px rgba(52, 211, 153, 0.2)",
-                transition: { duration: 0.3 }
-              }}
-              className="p-4 rounded-lg bg-slate-800/30 border border-slate-700/50 hover:border-emerald-400/50 transition-colors cursor-default"
-            >
-              <h4 className="text-emerald-400 mb-4 text-base font-sans font-bold">Frameworks & Tools</h4>
-              <motion.ul 
-                className="space-y-2"
-                variants={{
-                  hidden: { opacity: 1 },
-                  visible: {
-                    transition: { staggerChildren: 0.1 }
-                  }
-                }}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-100px" }}
-              >
-                {['▹ React & Vite', '▹ Flask', '▹ Tailwind CSS', '▹ Git & GitHub'].map((item, idx) => (
-                  <motion.li
-                    key={idx}
-                    variants={{
-                      hidden: { opacity: 0, x: -10 },
-                      visible: { opacity: 1, x: 0 }
-                    }}
-                    whileHover={{ x: 5, color: '#34d399' }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {item}
-                  </motion.li>
-                ))}
-              </motion.ul>
-            </motion.div>
-
-            {/* Methodologies */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              viewport={{ once: true, margin: "-100px" }}
-              whileHover={{ 
-                y: -5,
-                boxShadow: "0 0 20px rgba(52, 211, 153, 0.2)",
-                transition: { duration: 0.3 }
-              }}
-              className="p-4 rounded-lg bg-slate-800/30 border border-slate-700/50 hover:border-emerald-400/50 transition-colors cursor-default"
-            >
-              <h4 className="text-emerald-400 mb-4 text-base font-sans font-bold">Methodologies</h4>
-              <motion.ul 
-                className="space-y-2"
-                variants={{
-                  hidden: { opacity: 1 },
-                  visible: {
-                    transition: { staggerChildren: 0.1 }
-                  }
-                }}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-100px" }}
-              >
-                {['▹ Agile Development', '▹ System Optimization', '▹ AI Integration', '▹ Tech Communication'].map((item, idx) => (
-                  <motion.li
-                    key={idx}
-                    variants={{
-                      hidden: { opacity: 0, x: -10 },
-                      visible: { opacity: 1, x: 0 }
-                    }}
-                    whileHover={{ x: 5, color: '#34d399' }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {item}
-                  </motion.li>
-                ))}
-              </motion.ul>
-            </motion.div>
+                <h4 className="text-emerald-400 mb-5 text-base font-sans font-bold tracking-wide">{group.category}</h4>
+                <div className="space-y-4">
+                  {group.items.map((skill, si) => (
+                    <motion.div
+                      key={skill.name}
+                      initial={{ opacity: 0, x: -15 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.5, delay: gi * 0.1 + si * 0.07 }}
+                      viewport={{ once: true, margin: '-80px' }}
+                    >
+                      <div className="flex justify-between mb-1">
+                        <span className="text-slate-300 text-xs font-mono">▹ {skill.name}</span>
+                        <motion.span
+                          className="text-emerald-400 text-xs font-mono"
+                          initial={{ opacity: 0 }}
+                          whileInView={{ opacity: 1 }}
+                          transition={{ delay: gi * 0.1 + si * 0.07 + 0.3 }}
+                          viewport={{ once: true }}
+                        >{skill.pct}%</motion.span>
+                      </div>
+                      <div className="h-1.5 bg-slate-700/60 rounded-full overflow-hidden">
+                        <motion.div
+                          className="h-full rounded-full"
+                          style={{
+                            background: 'linear-gradient(90deg, #34d399, #10b981)',
+                            boxShadow: '0 0 8px rgba(52,211,153,0.6)',
+                          }}
+                          initial={{ width: 0 }}
+                          whileInView={{ width: `${skill.pct}%` }}
+                          transition={{
+                            duration: 1.2,
+                            delay: gi * 0.1 + si * 0.1 + 0.2,
+                            ease: [0.22, 1, 0.36, 1],
+                          }}
+                          viewport={{ once: true, margin: '-80px' }}
+                        />
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            ))}
           </div>
         </section>
 
         {/* Projects Section */}
         <section id="projects" className="py-24 border-t border-slate-800">
-          <motion.h3 
+          <motion.h3
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
@@ -859,15 +701,15 @@ export default function App() {
           >
             <span className="text-emerald-400 font-mono text-xl mr-3">03.</span> Some Things I've Built
           </motion.h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* NIDS Project */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0 }}
               viewport={{ once: true, margin: "-100px" }}
-              whileHover={{ 
+              whileHover={{
                 y: -10,
                 boxShadow: "0 20px 40px rgba(52, 211, 153, 0.15)",
               }}
@@ -879,51 +721,51 @@ export default function App() {
                 initial={{ opacity: 0 }}
                 whileHover={{ opacity: 1 }}
               />
-              
+
               <div className="relative z-10">
-                <motion.div 
+                <motion.div
                   className="flex justify-between items-center mb-6"
                   whileHover={{ scale: 1.05 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <motion.svg 
-                    className="w-10 h-10 text-emerald-400" 
-                    fill="none" 
-                    stroke="currentColor" 
+                  <motion.svg
+                    className="w-10 h-10 text-emerald-400"
+                    fill="none"
+                    stroke="currentColor"
                     viewBox="0 0 24 24"
                     animate={{ rotate: [0, 5, -5, 0] }}
                     transition={{ duration: 4, repeat: Infinity }}
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
                   </motion.svg>
-                  <motion.div 
+                  <motion.div
                     className="flex space-x-4"
                     animate={{ x: [0, 5, 0] }}
                     transition={{ duration: 2, repeat: Infinity }}
                   >
-                    <motion.a 
-                      href="#" 
+                    <motion.a
+                      href="#"
                       className="text-slate-400 hover:text-emerald-400 transition-colors"
                       whileHover={{ scale: 1.2 }}
                     >
-                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
                     </motion.a>
                   </motion.div>
                 </motion.div>
-                <motion.h4 
+                <motion.h4
                   className="text-xl font-bold text-slate-100 mb-3 group-hover:text-emerald-400 transition-colors"
                   whileHover={{ x: 5 }}
                 >
                   Intelligent Network Intrusion Detection
                 </motion.h4>
-                <motion.p 
+                <motion.p
                   className="text-slate-400 text-sm mb-6 line-clamp-4"
                   initial={{ opacity: 0.8 }}
                   whileHover={{ opacity: 1 }}
                 >
                   A robust NIDS built to actively monitor network traffic and detect anomalous behavior. Developed using an agile methodology, this system analyzes packet data in real-time to identify potential security threats.
                 </motion.p>
-                <motion.ul 
+                <motion.ul
                   className="flex flex-wrap gap-3 font-mono text-xs text-emerald-400"
                   variants={{
                     hidden: { opacity: 1 },
@@ -950,14 +792,14 @@ export default function App() {
                 </motion.ul>
               </div>
             </motion.div>
-            
+
             {/* Process Sync Demo Project */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
               viewport={{ once: true, margin: "-100px" }}
-              whileHover={{ 
+              whileHover={{
                 y: -10,
                 boxShadow: "0 20px 40px rgba(52, 211, 153, 0.15)",
               }}
@@ -969,51 +811,51 @@ export default function App() {
                 initial={{ opacity: 0 }}
                 whileHover={{ opacity: 1 }}
               />
-              
+
               <div className="relative z-10">
-                <motion.div 
+                <motion.div
                   className="flex justify-between items-center mb-6"
                   whileHover={{ scale: 1.05 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <motion.svg 
-                    className="w-10 h-10 text-emerald-400" 
-                    fill="none" 
-                    stroke="currentColor" 
+                  <motion.svg
+                    className="w-10 h-10 text-emerald-400"
+                    fill="none"
+                    stroke="currentColor"
                     viewBox="0 0 24 24"
                     animate={{ y: [0, -5, 0] }}
                     transition={{ duration: 3, repeat: Infinity }}
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
                   </motion.svg>
-                  <motion.div 
+                  <motion.div
                     className="flex space-x-4"
                     animate={{ x: [0, 5, 0] }}
                     transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
                   >
-                    <motion.a 
-                      href="#" 
+                    <motion.a
+                      href="#"
                       className="text-slate-400 hover:text-emerald-400 transition-colors"
                       whileHover={{ scale: 1.2 }}
                     >
-                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
                     </motion.a>
                   </motion.div>
                 </motion.div>
-                <motion.h4 
+                <motion.h4
                   className="text-xl font-bold text-slate-100 mb-3 group-hover:text-emerald-400 transition-colors"
                   whileHover={{ x: 5 }}
                 >
                   Process Synchronization Demo
                 </motion.h4>
-                <motion.p 
+                <motion.p
                   className="text-slate-400 text-sm mb-6 line-clamp-4"
                   initial={{ opacity: 0.8 }}
                   whileHover={{ opacity: 1 }}
                 >
                   An interactive application designed to visualize complex operating system concepts like critical sections, mutex locks, and semaphores.
                 </motion.p>
-                <motion.ul 
+                <motion.ul
                   className="flex flex-wrap gap-3 font-mono text-xs text-emerald-400"
                   variants={{
                     hidden: { opacity: 1 },
@@ -1042,12 +884,12 @@ export default function App() {
             </motion.div>
 
             {/* Performance Bottlenecks Project */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
               viewport={{ once: true, margin: "-100px" }}
-              whileHover={{ 
+              whileHover={{
                 y: -10,
                 boxShadow: "0 20px 40px rgba(52, 211, 153, 0.15)",
               }}
@@ -1059,51 +901,51 @@ export default function App() {
                 initial={{ opacity: 0 }}
                 whileHover={{ opacity: 1 }}
               />
-              
+
               <div className="relative z-10">
-                <motion.div 
+                <motion.div
                   className="flex justify-between items-center mb-6"
                   whileHover={{ scale: 1.05 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <motion.svg 
-                    className="w-10 h-10 text-emerald-400" 
-                    fill="none" 
-                    stroke="currentColor" 
+                  <motion.svg
+                    className="w-10 h-10 text-emerald-400"
+                    fill="none"
+                    stroke="currentColor"
                     viewBox="0 0 24 24"
                     animate={{ scale: [1, 1.1, 1] }}
                     transition={{ duration: 3, repeat: Infinity }}
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                   </motion.svg>
-                  <motion.div 
+                  <motion.div
                     className="flex space-x-4"
                     animate={{ x: [0, 5, 0] }}
                     transition={{ duration: 2, repeat: Infinity, delay: 1 }}
                   >
-                    <motion.a 
-                      href="#" 
+                    <motion.a
+                      href="#"
                       className="text-slate-400 hover:text-emerald-400 transition-colors"
                       whileHover={{ scale: 1.2 }}
                     >
-                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M10 16.5l6-4.5-6-4.5v9zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M10 16.5l6-4.5-6-4.5v9zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" /></svg>
                     </motion.a>
                   </motion.div>
                 </motion.div>
-                <motion.h4 
+                <motion.h4
                   className="text-xl font-bold text-slate-100 mb-3 group-hover:text-emerald-400 transition-colors"
                   whileHover={{ x: 5 }}
                 >
                   Performance Bottlenecks in Production
                 </motion.h4>
-                <motion.p 
+                <motion.p
                   className="text-slate-400 text-sm mb-6 line-clamp-4"
                   initial={{ opacity: 0.8 }}
                   whileHover={{ opacity: 1 }}
                 >
                   An educational presentation detailing strategies for identifying and handling performance bottlenecks in large-scale production systems.
                 </motion.p>
-                <motion.ul 
+                <motion.ul
                   className="flex flex-wrap gap-3 font-mono text-xs text-emerald-400"
                   variants={{
                     hidden: { opacity: 1 },
@@ -1135,7 +977,7 @@ export default function App() {
 
         {/* Contact Section */}
         <section id="contact" className="py-32 border-t border-slate-800 text-center max-w-2xl mx-auto">
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -1144,8 +986,8 @@ export default function App() {
           >
             04. What's Next?
           </motion.p>
-          
-          <motion.h2 
+
+          <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
@@ -1162,8 +1004,8 @@ export default function App() {
               className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-emerald-400 via-emerald-300 to-emerald-400"
             />
           </motion.h2>
-          
-          <motion.p 
+
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -1172,7 +1014,7 @@ export default function App() {
           >
             I'm actively expanding my technical skills and building new projects. Whether you have a question, a potential opportunity, or just want to connect, my inbox is open!
           </motion.p>
-          
+
           {/* Say Hello Button with Enhanced Animation */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
@@ -1180,8 +1022,8 @@ export default function App() {
             transition={{ duration: 0.6, delay: 0.3 }}
             viewport={{ once: true, margin: "-100px" }}
           >
-            <motion.a 
-              whileHover={{ 
+            <motion.a
+              whileHover={{
                 scale: 1.08,
                 boxShadow: "0 0 30px rgba(52, 211, 153, 0.6), inset 0 0 20px rgba(52, 211, 153, 0.1)",
               }}
@@ -1206,9 +1048,9 @@ export default function App() {
               <span className="relative z-10">Say Hello</span>
             </motion.a>
           </motion.div>
-          
+
           {/* Social Links with Enhanced Animation */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
@@ -1220,9 +1062,9 @@ export default function App() {
               whileHover={{ y: -10 }}
               transition={{ duration: 0.3 }}
             >
-              <motion.a 
-                href="https://github.com/pranavnadakkal" 
-                target="_blank" 
+              <motion.a
+                href="https://github.com/pranavnadakkal"
+                target="_blank"
                 rel="noopener noreferrer"
                 aria-label="GitHub profile"
                 className="relative group inline-block"
@@ -1234,13 +1076,13 @@ export default function App() {
                 >
                   GitHub
                 </motion.div>
-                
+
                 {/* Animated border on hover */}
                 <motion.div
                   className="absolute -inset-2 border border-emerald-400/0 group-hover:border-emerald-400/50 rounded-lg"
                   transition={{ duration: 0.3 }}
                 />
-                
+
                 {/* Bottom line animation */}
                 <motion.div
                   className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-emerald-400 to-emerald-300"
@@ -1265,9 +1107,9 @@ export default function App() {
               whileHover={{ y: -10 }}
               transition={{ duration: 0.3 }}
             >
-              <motion.a 
-                href="https://linkedin.com/in/pranavnadakkal" 
-                target="_blank" 
+              <motion.a
+                href="https://linkedin.com/in/pranavnadakkal"
+                target="_blank"
                 rel="noopener noreferrer"
                 aria-label="LinkedIn profile"
                 className="relative group inline-block"
@@ -1285,7 +1127,7 @@ export default function App() {
                   className="absolute -inset-2 border border-emerald-400/0 group-hover:border-emerald-400/50 rounded-lg"
                   transition={{ duration: 0.3 }}
                 />
-                
+
                 {/* Bottom line animation */}
                 <motion.div
                   className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-emerald-400 to-emerald-300"
@@ -1315,7 +1157,7 @@ export default function App() {
         </section>
 
         {/* Footer Section */}
-        <motion.footer 
+        <motion.footer
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -1354,7 +1196,7 @@ export default function App() {
                 by Prompt Engineering by Pranav Nadakkal
               </motion.span>
             </div>
-            <motion.p 
+            <motion.p
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.3 }}
@@ -1391,7 +1233,7 @@ export default function App() {
                   🔒 Secured by Pranav Nadakkal
                 </span>
               </motion.div>
-              
+
               <motion.p
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
@@ -1404,7 +1246,7 @@ export default function App() {
             </motion.div>
           </div>
         </motion.footer>
-        
+
       </main>
     </div>
   )
