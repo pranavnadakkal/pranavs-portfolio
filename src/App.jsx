@@ -470,7 +470,7 @@ export default function App() {
             <motion.a
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              href="pranavN2.pdf"
+              href="/resume.pdf"
               download="Pranav_Nadakkal_Resume.pdf"
               className="bg-emerald-400/10 border border-emerald-400 text-emerald-400 hover:bg-emerald-400/20 px-8 py-4 rounded font-mono transition-all flex items-center gap-2"
             >
