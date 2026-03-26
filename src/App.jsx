@@ -3,7 +3,7 @@ import { motion, useScroll, useSpring } from 'framer-motion';
 import './App.css';
 
 // Security: Constants for event handling and validation
-const VALID_SCROLL_SECTIONS = new Set(['about', 'skills', 'projects', 'contact']);
+const VALID_SCROLL_SECTIONS = new Set(['about', 'skills', 'projects', 'contact', 'resume']);
 const MAX_COORDINATES = { x: 10000, y: 10000 };
 
 // Security: Safe navigation handler
@@ -355,7 +355,7 @@ export default function App() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="flex space-x-8 text-sm font-mono text-slate-300 hidden md:flex"
         >
-          {['About', 'Skills', 'Projects', 'Contact'].map((item, index) => (
+          {['About', 'Skills', 'Projects', 'Contact', 'Resume'].map((item, index) => (
             <motion.li
               key={item}
               initial={{ opacity: 0, y: -10 }}
@@ -366,8 +366,11 @@ export default function App() {
                 href={`#${item.toLowerCase()}`}
                 onClick={(e) => {
                   e.preventDefault();
-                  // Security: Use safe navigation handler
-                  handleSafeNavigation(item.toLowerCase());
+                  if (item === 'Resume') {
+                    window.open('/resume.pdf', '_blank');
+                  } else {
+                    handleSafeNavigation(item.toLowerCase());
+                  }
                 }}
                 className="relative group cursor-pointer"
                 whileHover={{ color: '#34d399' }}
@@ -467,7 +470,7 @@ export default function App() {
             <motion.a
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              href="/resume.pdf"
+              href="pranavN2.pdf"
               download="Pranav_Nadakkal_Resume.pdf"
               className="bg-emerald-400/10 border border-emerald-400 text-emerald-400 hover:bg-emerald-400/20 px-8 py-4 rounded font-mono transition-all flex items-center gap-2"
             >
@@ -1120,6 +1123,53 @@ export default function App() {
                   transition={{ duration: 3, repeat: Infinity, delay: 0.5 }}
                 >
                   LinkedIn
+                </motion.div>
+
+                {/* Animated border on hover */}
+                <motion.div
+                  className="absolute -inset-2 border border-emerald-400/0 group-hover:border-emerald-400/50 rounded-lg"
+                  transition={{ duration: 0.3 }}
+                />
+
+                {/* Bottom line animation */}
+                <motion.div
+                  className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-emerald-400 to-emerald-300"
+                  initial={{ width: 0 }}
+                  whileHover={{ width: '100%' }}
+                  transition={{ duration: 0.3 }}
+                />
+              </motion.a>
+            </motion.div>
+
+            {/* Divider */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.55 }}
+              viewport={{ once: true }}
+              className="text-emerald-400/50"
+            >
+              •
+            </motion.div>
+
+            {/* Resume Link */}
+            <motion.div
+              whileHover={{ y: -10 }}
+              transition={{ duration: 0.3 }}
+            >
+              <motion.a
+                href="/resume.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Resume"
+                className="relative group inline-block"
+              >
+                <motion.div
+                  className="text-slate-400 group-hover:text-emerald-400 font-mono transition-colors text-lg font-bold"
+                  animate={{ opacity: [1, 0.7, 1] }}
+                  transition={{ duration: 3, repeat: Infinity, delay: 1 }}
+                >
+                  Resume
                 </motion.div>
 
                 {/* Animated border on hover */}
